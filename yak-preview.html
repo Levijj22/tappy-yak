@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Yak Options</title>
+<style>
+  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; padding: 20px; }
+  h1 { color: #fff; margin-bottom: 30px; letter-spacing: 2px; }
+  .options { display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
+  .opt { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .opt h2 { color: #fff; font-size: 18px; margin: 0; }
+  .opt p { color: #aaa; font-size: 13px; margin: 0; text-align: center; max-width: 160px; }
+  canvas { background: #7ecde8; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+</style>
+</head>
+<body>
+<h1>🦬 TappyYak — Pick Your Yak</h1>
+<div class="options">
+  <div class="opt">
+    <h2>Option A</h2>
+    <canvas id="a" width="160" height="160"></canvas>
+    <p>Chunky Mascot — round body, big swept horns, bold cartoon eyes</p>
+  </div>
+  <div class="opt">
+    <h2>Option B</h2>
+    <canvas id="b" width="160" height="160"></canvas>
+    <p>Highland Style — shaggy mane, wide buffalo horns, expressive face</p>
+  </div>
+  <div class="opt">
+    <h2>Option C</h2>
+    <canvas id="c" width="160" height="160"></canvas>
+    <p>Fluffy Ball — super round fluffball, tiny legs, cream horns, cute snout</p>
+  </div>
+</div>
+
+<script>
+/* ── helpers ── */
+function draw(id, fn) {
+  const cv = document.getElementById(id);
+  const c  = cv.getContext('2d');
+  fn(c, 80, 90);
+}
+
+/* ══════════════════════════════════════════
+   OPTION A — Chunky Mascot
+   Round body, large swept cream horns, big white eyes
+═══════════════════════════════════════════ */
+draw('a', (c, cx, cy) => {
+  c.save();
+  c.translate(cx, cy);
+
+  /* back horn */
+  c.fillStyle = '#E8D08A';
+  c.beginPath();
+  c.moveTo(-8, -30);
+  c.bezierCurveTo(-30, -55, -40, -60, -28, -42);
+  c.bezierCurveTo(-18, -32, -10, -28, -8, -30);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = '#B8A050'; c.lineWidth = 1.5; c.stroke();
+
+  /* body — deep red blob */
+  c.fillStyle = '#8B1A1A';
+  c.beginPath();
+  c.ellipse(0, 8, 34, 26, 0, 0, Math.PI*2);
+  c.fill();
+
+  /* fur bumps around body */
+  c.fillStyle = '#A52020';
+  [[-30,2,11],[-30,18,9],[-18,28,10],[0,30,10],[18,28,9],[30,16,9],[30,0,9]].forEach(([x,y,r])=>{
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+  });
+
+  /* belly fringe */
+  c.fillStyle = '#6A1010';
+  for (let i = -28; i <= 28; i += 7) {
+    c.beginPath(); c.arc(i, 32, 6, 0, Math.PI*2); c.fill();
+  }
+
+  /* body centre re-smooth */
+  c.fillStyle = '#8B1A1A';
+  c.beginPath(); c.ellipse(0, 8, 26, 20, 0, 0, Math.PI*2); c.fill();
+
+  /* head */
+  c.fillStyle = '#8B1A1A';
+  c.beginPath(); c.arc(28, -8, 22, 0, Math.PI*2); c.fill();
+
+  /* head fur top */
+  c.fillStyle = '#A52020';
+  [[18,-28,10],[28,-28,9],[36,-26,8],[14,-18,8]].forEach(([x,y,r])=>{
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+  });
+  c.fillStyle = '#8B1A1A';
+  c.beginPath(); c.arc(28, -8, 19, 0, Math.PI*2); c.fill();
+
+  /* front horn */
+  c.fillStyle = '#E8D08A';
+  c.beginPath();
+  c.moveTo(32, -24);
+  c.bezierCurveTo(8, -52, 4, -60, 16, -46);
+  c.bezierCurveTo(22, -38, 30, -28, 32, -24);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = '#B8A050'; c.lineWidth = 1.5; c.stroke();
+
+  /* whites of eyes */
+  c.fillStyle = '#fff';
+  c.beginPath(); c.ellipse(32, -10, 11, 13, -0.2, 0, Math.PI*2); c.fill();
+
+  /* iris */
+  c.fillStyle = '#5C3A1E';
+  c.beginPath(); c.arc(33, -8, 7, 0, Math.PI*2); c.fill();
+
+  /* pupil */
+  c.fillStyle = '#000';
+  c.beginPath(); c.arc(34, -7, 4, 0, Math.PI*2); c.fill();
+
+  /* shine */
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(36, -9, 2, 0, Math.PI*2); c.fill();
+
+  /* snout */
+  c.fillStyle = '#F4874B';
+  c.beginPath(); c.ellipse(44, -2, 10, 7, 0.2, 0, Math.PI*2); c.fill();
+
+  /* nostrils */
+  c.fillStyle = '#C05820';
+  c.beginPath(); c.ellipse(41, 0, 2.5, 1.8, -0.3, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(47, -1, 2.5, 1.8, 0.3, 0, Math.PI*2); c.fill();
+
+  /* smile */
+  c.strokeStyle = '#C05820'; c.lineWidth = 1.5;
+  c.beginPath(); c.arc(44, 0, 5, 0.2, Math.PI - 0.2); c.stroke();
+
+  /* legs */
+  c.fillStyle = '#6A1010';
+  [[-14,28],[-4,28],[8,28],[18,28]].forEach(([x,y])=>{
+    c.beginPath(); c.roundRect(x, y, 8, 16, 3); c.fill();
+  });
+  /* hooves */
+  c.fillStyle = '#2A0A0A';
+  [[-14,42],[-4,42],[8,42],[18,42]].forEach(([x,y])=>{
+    c.beginPath(); c.ellipse(x+4, y+2, 5, 3, 0, 0, Math.PI*2); c.fill();
+  });
+
+  /* tail */
+  c.strokeStyle = '#A52020'; c.lineWidth = 5; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-28, 0); c.bezierCurveTo(-44, -8, -48, 4, -40, 10); c.stroke();
+  c.fillStyle = '#C03030';
+  c.beginPath(); c.arc(-40, 10, 7, 0, Math.PI*2); c.fill();
+
+  c.restore();
+});
+
+/* ══════════════════════════════════════════
+   OPTION B — Highland Style
+   Wide outward buffalo horns, large shaggy mane, warmer brown-red
+═══════════════════════════════════════════ */
+draw('b', (c, cx, cy) => {
+  c.save();
+  c.translate(cx, cy);
+
+  /* wide back horn — curves out to the left */
+  c.fillStyle = '#D4B060';
+  c.beginPath();
+  c.moveTo(-2, -28);
+  c.bezierCurveTo(-20, -44, -50, -48, -46, -30);
+  c.bezierCurveTo(-38, -22, -14, -24, -2, -28);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = '#9A8030'; c.lineWidth = 1.5; c.stroke();
+
+  /* shaggy mane — big fluffy chest */
+  c.fillStyle = '#7A1515';
+  const mane = [[-32,-2,14],[-28,12,13],[-22,24,12],[-10,30,12],[4,30,12],[18,26,11],[28,16,10]];
+  mane.forEach(([x,y,r])=>{ c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); });
+
+  /* body */
+  c.fillStyle = '#921C1C';
+  c.beginPath(); c.ellipse(0, 6, 30, 22, 0, 0, Math.PI*2); c.fill();
+
+  /* belly long fringe strands */
+  c.strokeStyle = '#5A0E0E'; c.lineWidth = 3; c.lineCap = 'round';
+  for (let i = -22; i <= 22; i += 5) {
+    c.beginPath(); c.moveTo(i, 24); c.lineTo(i + (Math.random()-0.5)*4, 36); c.stroke();
+  }
+
+  /* body re-smooth */
+  c.fillStyle = '#921C1C';
+  c.beginPath(); c.ellipse(0, 4, 22, 16, 0, 0, Math.PI*2); c.fill();
+
+  /* head */
+  c.fillStyle = '#921C1C';
+  c.beginPath(); c.arc(26, -6, 20, 0, Math.PI*2); c.fill();
+
+  /* forehead fluff */
+  c.fillStyle = '#A82424';
+  [[18,-24,9],[26,-24,8],[34,-20,7],[14,-14,7]].forEach(([x,y,r])=>{
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+  });
+  c.fillStyle = '#921C1C';
+  c.beginPath(); c.arc(26,-6,17,0,Math.PI*2); c.fill();
+
+  /* front horn — curves right/up */
+  c.fillStyle = '#D4B060';
+  c.beginPath();
+  c.moveTo(30, -22);
+  c.bezierCurveTo(50, -44, 58, -48, 52, -32);
+  c.bezierCurveTo(46, -24, 34, -22, 30, -22);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = '#9A8030'; c.lineWidth = 1.5; c.stroke();
+
+  /* eye white */
+  c.fillStyle = '#fff';
+  c.beginPath(); c.ellipse(30, -8, 10, 12, -0.15, 0, Math.PI*2); c.fill();
+
+  /* iris */
+  c.fillStyle = '#3E2200';
+  c.beginPath(); c.arc(31, -6, 6, 0, Math.PI*2); c.fill();
+
+  /* pupil */
+  c.fillStyle = '#000';
+  c.beginPath(); c.arc(32, -5, 3.5, 0, Math.PI*2); c.fill();
+
+  /* shine */
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(33.5, -6.5, 1.8, 0, Math.PI*2); c.fill();
+
+  /* snout — wider, more cow-like */
+  c.fillStyle = '#E07040';
+  c.beginPath(); c.ellipse(43, 2, 12, 9, 0.15, 0, Math.PI*2); c.fill();
+
+  /* nostrils */
+  c.fillStyle = '#A04020';
+  c.beginPath(); c.ellipse(39, 4, 3, 2, -0.2, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(47, 3, 3, 2, 0.2, 0, Math.PI*2); c.fill();
+
+  /* legs */
+  c.fillStyle = '#6A0E0E';
+  [[-16,24],[-6,24],[6,24],[16,24]].forEach(([x,y])=>{
+    c.beginPath(); c.roundRect(x, y, 8, 18, 3); c.fill();
+  });
+  c.fillStyle = '#1E0606';
+  [[-16,40],[-6,40],[6,40],[16,40]].forEach(([x,y])=>{
+    c.beginPath(); c.ellipse(x+4, y+3, 5, 3, 0, 0, Math.PI*2); c.fill();
+  });
+
+  /* tail */
+  c.strokeStyle = '#A82424'; c.lineWidth = 5; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-26, 2); c.bezierCurveTo(-44, -6, -50, 6, -40, 14); c.stroke();
+  c.fillStyle = '#C03030';
+  c.beginPath(); c.arc(-40, 14, 8, 0, Math.PI*2); c.fill();
+
+  c.restore();
+});
+
+/* ══════════════════════════════════════════
+   OPTION C — Fluffy Fluffball
+   Very round, almost circular body, cream horns pointing up-and-out,
+   tiny stubby legs, rounder snout
+═══════════════════════════════════════════ */
+draw('c', (c, cx, cy) => {
+  c.save();
+  c.translate(cx, cy);
+
+  /* back horn — up and curves slightly out */
+  c.fillStyle = '#EDE0A8';
+  c.beginPath();
+  c.moveTo(4, -32);
+  c.bezierCurveTo(-10, -60, -18, -68, -6, -50);
+  c.bezierCurveTo(0, -42, 4, -36, 4, -32);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = '#C0B060'; c.lineWidth = 1.5; c.stroke();
+
+  /* big round fluffy body — the whole yak is basically a fluffball */
+  c.fillStyle = '#8B1A1A';
+  c.beginPath(); c.arc(0, 6, 38, 0, Math.PI*2); c.fill();
+
+  /* fur texture bumps all around */
+  c.fillStyle = '#A82020';
+  const angles = [0, 40, 80, 120, 160, 200, 240, 280, 320];
+  angles.forEach(a => {
+    const rad = a * Math.PI / 180;
+    const x = Math.cos(rad) * 36;
+    const y = 6 + Math.sin(rad) * 36;
+    c.beginPath(); c.arc(x, y, 10, 0, Math.PI*2); c.fill();
+  });
+
+  /* re-smooth inner body */
+  c.fillStyle = '#8B1A1A';
+  c.beginPath(); c.arc(0, 6, 30, 0, Math.PI*2); c.fill();
+
+  /* head merges into body — slight bump at front-right */
+  c.fillStyle = '#8B1A1A';
+  c.beginPath(); c.arc(26, -10, 20, 0, Math.PI*2); c.fill();
+
+  /* fluffy top of head */
+  c.fillStyle = '#A82020';
+  [[18,-28,9],[26,-26,8],[34,-22,7]].forEach(([x,y,r])=>{
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+  });
+  c.fillStyle = '#8B1A1A';
+  c.beginPath(); c.arc(26,-10,17,0,Math.PI*2); c.fill();
+
+  /* front horn — up and slightly inward curve */
+  c.fillStyle = '#EDE0A8';
+  c.beginPath();
+  c.moveTo(34, -24);
+  c.bezierCurveTo(44, -56, 38, -64, 28, -48);
+  c.bezierCurveTo(26, -40, 30, -30, 34, -24);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = '#C0B060'; c.lineWidth = 1.5; c.stroke();
+
+  /* big round eye white */
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(32, -12, 12, 0, Math.PI*2); c.fill();
+
+  /* iris */
+  c.fillStyle = '#4A2800';
+  c.beginPath(); c.arc(34, -10, 7, 0, Math.PI*2); c.fill();
+
+  /* pupil */
+  c.fillStyle = '#000';
+  c.beginPath(); c.arc(35, -9, 4.5, 0, Math.PI*2); c.fill();
+
+  /* shine dots — double for extra cute */
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(37, -11, 2.2, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(33, -14, 1.2, 0, Math.PI*2); c.fill();
+
+  /* rounder snout */
+  c.fillStyle = '#F4874B';
+  c.beginPath(); c.arc(44, 0, 11, 0, Math.PI*2); c.fill();
+
+  /* nostrils */
+  c.fillStyle = '#C05820';
+  c.beginPath(); c.arc(40, 2, 2.5, 0, Math.PI*2); c.fill();
+  c.beginPath(); c.arc(48, 1, 2.5, 0, Math.PI*2); c.fill();
+
+  /* tiny smile */
+  c.strokeStyle = '#C05820'; c.lineWidth = 1.8;
+  c.beginPath(); c.arc(44, 2, 5, 0.1, Math.PI - 0.1); c.stroke();
+
+  /* tiny stubby legs */
+  c.fillStyle = '#6A1010';
+  [[-18,36],[-8,38],[4,38],[14,36]].forEach(([x,y])=>{
+    c.beginPath(); c.roundRect(x, y, 9, 12, 4); c.fill();
+  });
+  c.fillStyle = '#1E0606';
+  [[-18,46],[-8,48],[4,48],[14,46]].forEach(([x,y])=>{
+    c.beginPath(); c.ellipse(x+4, y+2, 5, 3, 0, 0, Math.PI*2); c.fill();
+  });
+
+  /* fluffy tail */
+  c.strokeStyle = '#A82020'; c.lineWidth = 6; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-32, 0); c.bezierCurveTo(-52, -10, -54, 8, -42, 14); c.stroke();
+  c.fillStyle = '#CC3030';
+  c.beginPath(); c.arc(-42, 14, 9, 0, Math.PI*2); c.fill();
+
+  c.restore();
+});
+</script>
+</body>
+</html>

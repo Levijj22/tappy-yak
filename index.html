@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>TappyYak</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #0d1b2a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      font-family: -apple-system, 'Segoe UI', Helvetica, sans-serif;
+      touch-action: none;
+    }
+    #wrap {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100dvh;
+      background: #0d1b2a;
+    }
+    #gameArea {
+      flex: 2;
+      min-height: 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      /* sized by fitCanvas() JS */
+    }
+
+    /* ── Leaderboard bar (bottom 1/3) ── */
+    #lbBar {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      background: rgba(5,12,25,0.97);
+      border-top: 2px solid rgba(245,200,66,0.35);
+    }
+    .lb-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 6px 8px;
+      overflow: hidden;
+    }
+    .lb-col + .lb-col {
+      border-left: 1px solid rgba(255,255,255,0.1);
+    }
+    .lb-col-hd {
+      font-size: 0.72rem;
+      font-weight: 900;
+      color: #f5c842;
+      text-align: center;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(245,200,66,0.2);
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+    .lb-col-list {
+      flex: 1;
+      list-style: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .lb-col-list li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      color: #ddd;
+      background: rgba(255,255,255,0.04);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .lb-col-list li.gold   { background: rgba(245,200,66,0.14); }
+    .lb-col-list li.silver { background: rgba(192,192,192,0.1); }
+    .lb-col-list li.bronze { background: rgba(205,127,50,0.1);  }
+    .lb-col-list .rank  { width: 22px; font-weight: 900; text-align: center; flex-shrink: 0; font-size: 0.7rem; }
+    .lb-col-list .lname { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .lb-col-list .lscore{ font-weight: 800; color: #f5c842; flex-shrink: 0; }
+    .lb-bar-empty { color: #555; font-size: 0.7rem; text-align: center; padding: 6px 0; }
+
+    /* screens overlay only the gameArea */
+    .screen { border-radius: 0; }
+    #btnFS, #btnTimer {
+      position: fixed;
+      top: 10px;
+      z-index: 999;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 1.1rem;
+      height: 36px;
+      width: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+      padding: 0;
+      font-family: inherit;
+    }
+    #btnFS    { right: 12px; }
+    #btnTimer {
+      right: 56px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+    }
+    #btnTimer.active { background: rgba(224,120,32,0.65); border-color: rgba(255,200,120,0.5); font-size: 0.65rem; letter-spacing: -0.5px; }
+    #btnTimer.locked { background: rgba(224,48,48,0.7); border-color: rgba(255,120,120,0.6); }
+
+    #lockMsg {
+      display: none;
+      color: #f88;
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.4;
+    }
+    #lockMsg small {
+      display: block;
+      color: #fcc;
+      font-size: 0.78rem;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    /* ---- overlay screens ---- */
+    .screen {
+      display: none;
+      position: absolute;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 20px;
+      border-radius: 14px;
+    }
+    .screen.active { display: flex; }
+
+    .title {
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 3px 3px 0 #b87820, 6px 6px 0 #7a4f10;
+      letter-spacing: 3px;
+      text-align: center;
+    }
+    .subtitle {
+      color: #ddd;
+      font-size: 0.95rem;
+      text-align: center;
+      opacity: 0.75;
+      margin-top: -6px;
+    }
+    .tap-hint {
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      animation: pulse 1.3s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    .card {
+      background: rgba(5,15,30,0.82);
+      backdrop-filter: blur(6px);
+      border: 1.5px solid rgba(255,255,255,0.13);
+      border-radius: 16px;
+      padding: 22px 24px;
+      width: 100%;
+      max-width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #f5c842;
+      text-align: center;
+    }
+    .score-big {
+      font-size: 3.4rem;
+      font-weight: 900;
+      color: #f5c842;
+      line-height: 1;
+    }
+    .score-label {
+      color: #999;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: -6px;
+    }
+    .best-badge {
+      background: linear-gradient(135deg,#f5c842,#e07820);
+      color: #1a0800;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]::placeholder { color: rgba(255,255,255,0.35); }
+    input[type="text"]:focus { border-color: #f5c842; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s, filter 0.15s;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    button:active { transform: scale(0.96); filter: brightness(0.9); }
+    .btn-primary {
+      background: linear-gradient(135deg, #f5c842, #e07820);
+      color: #1a0800;
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #ddd;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .error-msg { color: #f88; font-size: 0.8rem; text-align: center; min-height: 1.1em; }
+
+    /* full leaderboard modal */
+    .lb-tabs { display:flex; gap:8px; width:100%; }
+    .lb-tab {
+      flex:1; padding:8px 0; border-radius:8px; border:none; cursor:pointer;
+      font-size:0.85rem; font-weight:700; font-family:inherit;
+      background:rgba(255,255,255,0.08); color:#aaa; transition:all 0.15s;
+    }
+    .lb-tab.active { background:linear-gradient(135deg,#f5c842,#e07820); color:#1a0800; }
+    .lb-list {
+      width:100%; list-style:none; display:flex; flex-direction:column;
+      gap:5px; max-height:48vh; overflow-y:auto;
+    }
+    .lb-list li {
+      display:flex; align-items:center; gap:10px; padding:7px 12px;
+      background:rgba(255,255,255,0.06); border-radius:8px; color:#ddd; font-size:0.9rem;
+    }
+    .lb-list li.gold   { background:rgba(245,200,66,0.12); }
+    .lb-list li.silver { background:rgba(192,192,192,0.1); }
+    .lb-list li.bronze { background:rgba(205,127,50,0.1);  }
+    .lb-list .rank  { width:28px; font-weight:900; text-align:center; flex-shrink:0; }
+    .lb-list .lname { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .lb-list .lscore{ font-weight:800; color:#f5c842; }
+    .lb-list-empty  { color:#777; font-size:0.85rem; text-align:center; padding:10px 0; }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <!-- top 2/3: game + overlay screens -->
+  <div id="gameArea">
+    <canvas id="c" width="400" height="600"></canvas>
+    <button id="btnFS" title="Fullscreen">⛶</button>
+    <button id="btnTimer" title="Start event mode (15-min countdown + mask leaderboard)">⏱️</button>
+
+    <!-- MENU -->
+    <div id="sMenu" class="screen active">
+      <div class="title">TappyYak</div>
+      <div class="subtitle">Flap to survive. Don't hit the pipes.</div>
+      <div class="card">
+        <div class="tap-hint" id="startHint">✦ Press spacebar to start ✦</div>
+        <div id="lockMsg">🔒 Session ended<small>Game is closed</small></div>
+        <button class="btn-secondary" id="btnLB">🏆 See Leaderboard</button>
+      </div>
+    </div>
+
+    <!-- FULL LEADERBOARD -->
+    <div id="sLB" class="screen">
+      <div class="card" style="max-height:85vh; width:min(360px,90vw)">
+        <div class="card-title">🏆 Leaderboard</div>
+        <div class="lb-tabs">
+          <button class="lb-tab active" id="tabDaily">📅 Today</button>
+          <button class="lb-tab" id="tab2Days">🎁 2 Days</button>
+          <button class="lb-tab" id="tabAllTime">🌟 All Time</button>
+        </div>
+        <ul class="lb-list" id="lbList"><li class="lb-list-empty">Loading…</li></ul>
+        <button class="btn-secondary" id="btnBack">← Back</button>
+      </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="sOver" class="screen">
+      <div class="card">
+        <div class="card-title">Game Over</div>
+        <div class="score-big" id="finalScore">0</div>
+        <div class="score-label">YOUR SCORE</div>
+        <div id="newBestBadge" class="best-badge" style="display:none">🎉 New Personal Best!</div>
+        <input type="text" id="nameInput" placeholder="Your name" maxlength="16"
+               autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+        <div class="error-msg" id="errMsg"></div>
+        <button class="btn-primary" id="btnSubmit">Submit to Leaderboard</button>
+        <button class="btn-secondary" id="btnSkip">Play Again (skip leaderboard)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- bottom 1/3: live leaderboard -->
+  <div id="lbBar">
+    <div class="lb-col">
+      <div class="lb-col-hd">📅 Today</div>
+      <ul class="lb-col-list" id="lbToday"><li class="lb-bar-empty">Loading…</li></ul>
+    </div>
+    <div class="lb-col">
+      <div class="lb-col-hd">🌟 All Time</div>
+      <ul class="lb-col-list" id="lbAllTime"><li class="lb-bar-empty">Loading…</li></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── SHA-256 (pure JS, public domain — Geraint Luff) ── */
+var sha256 = function sha256(ascii) {
+  function rightRotate(value, amount) { return (value>>>amount) | (value<<(32-amount)); }
+  var mathPow = Math.pow, maxWord = mathPow(2, 32), lengthProperty = 'length';
+  var i, j, result = '';
+  var words = [], asciiBitLength = ascii[lengthProperty]*8;
+  var hash = sha256.h = sha256.h || [];
+  var k    = sha256.k = sha256.k || [];
+  var primeCounter = k[lengthProperty];
+  var isComposite = {};
+  for (var candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (mathPow(candidate, .5)*maxWord)|0;
+      k[primeCounter++]  = (mathPow(candidate, 1/3)*maxWord)|0;
+    }
+  }
+  ascii += '\x80';
+  while (ascii[lengthProperty]%64 - 56) ascii += '\x00';
+  for (i = 0; i < ascii[lengthProperty]; i++) {
+    j = ascii.charCodeAt(i);
+    if (j>>8) return;
+    words[i>>2] |= j << ((3 - i)%4)*8;
+  }
+  words[words[lengthProperty]] = ((asciiBitLength/maxWord)|0);
+  words[words[lengthProperty]] = (asciiBitLength);
+  for (j = 0; j < words[lengthProperty];) {
+    var w = words.slice(j, j += 16), oldHash = hash;
+    hash = hash.slice(0, 8);
+    for (i = 0; i < 64; i++) {
+      var w15 = w[i - 15], w2 = w[i - 2];
+      var a = hash[0], e = hash[4];
+      var temp1 = hash[7]
+        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+        + ((e&hash[5])^((~e)&hash[6])) + k[i]
+        + (w[i] = (i < 16) ? w[i] : (
+            w[i - 16]
+            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15>>>3))
+            + w[i - 7]
+            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2>>>10))
+          )|0
+        );
+      var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+        + ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash = [(temp1 + temp2)|0].concat(hash);
+      hash[4] = (hash[4] + temp1)|0;
+    }
+    for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i])|0;
+  }
+  for (i = 0; i < 8; i++) for (j = 3; j + 1; j--) {
+    var b = (hash[i]>>(j*8))&255;
+    result += ((b < 16) ? 0 : '') + b.toString(16);
+  }
+  return result;
+};
+
+/* ── API helpers (Vercel / GitHub Gist backend) ─── */
+let sessionToken      = null;
+let sessionChallenge  = null;
+let sessionDifficulty = 5;
+let sessionNonce      = null;       // PoW solution, computed in background
+let sessionReady      = null;       // Promise that resolves when token+nonce ready
+
+function fetchSession() {
+  sessionToken = null; sessionChallenge = null; sessionNonce = null;
+  sessionReady = fetch('/api/session')
+    .then(r => r.json())
+    .then(d => {
+      sessionToken      = d.token;
+      sessionDifficulty = d.difficulty || 5;
+      const parts = (sessionToken || '').split('.');
+      sessionChallenge = (parts.length === 3) ? parts[1] : null;
+      return solvePoW();
+    })
+    .catch(() => { sessionToken = null; });
+  return sessionReady;
+}
+
+/* Chunked PoW solver — runs on main thread in small slices so UI stays responsive. */
+function solvePoW() {
+  return new Promise(resolve => {
+    const prefix = '0'.repeat(sessionDifficulty);
+    const challenge = sessionChallenge;
+    if (!challenge) { resolve(null); return; }
+    let n = 0;
+    const CHUNK = 3000;
+    function work() {
+      for (let i = 0; i < CHUNK; i++, n++) {
+        if (sha256(challenge + n).startsWith(prefix)) {
+          sessionNonce = n;
+          resolve(n);
+          return;
+        }
+      }
+      setTimeout(work, 0);
+    }
+    work();
+  });
+}
+
+async function apiSubmit(name, score, clears) {
+  await (sessionReady || fetchSession());
+  const res = await fetch('/api/scores', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: name.trim(),
+      score,
+      token: sessionToken,
+      nonce: sessionNonce,
+      clears
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'submit failed');
+  }
+}
+
+async function apiFetch(limit = 15, type = 'daily') {
+  const res = await fetch(`/api/scores?limit=${limit}&type=${type}`);
+  if (!res.ok) throw new Error('fetch failed');
+  return res.json();
+}
+
+/* ── Canvas setup ───────────────────────────────── */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const H = 600;
+const landscape = window.innerWidth > window.innerHeight;
+/* Portrait: fixed 400px wide.
+   Landscape: match the GAME AREA ratio (full width × 2/3 height) so canvas fills edge-to-edge */
+const W = landscape
+  ? Math.round(H * window.innerWidth / (window.innerHeight * 2 / 3))
+  : 400;
+
+/* render at 2× for crisp display on large / retina screens */
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+canvas.width  = W * DPR;
+canvas.height = H * DPR;
+ctx.scale(DPR, DPR);
+
+/* ── Yak sprite image ───────────────────────────── */
+const yakImg = new Image();
+yakImg.src = 'yak-sprite.png';
+
+/* ── Constants ──────────────────────────────────── */
+const GRAVITY     = 0.46;     // lighter — falls slower
+const FLAP_VEL    = -7.2;     // more lift per tap
+const PIPE_W      = 68;
+const GROUND_H    = 72;
+const BASE_SPEED  = 2.3;
+const SPEED_PER_SCORE = 0.13;  // +0.13 px/frame per pipe cleared
+const YAK_X       = 90;
+const COURSE_SEED = 20250415; // fixed seed → same course every run
+
+/* seeded LCG random (0–1) */
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 0xffffffff; };
+}
+
+/* Progressive difficulty helpers */
+function pipeGap(n)   { return Math.max(130, 215 - n * 3.5); }          // gap shrinks each pipe
+function pipeDelay(n) { return Math.max(W * 1.5, W * 4.5 - n * W * 0.06); } // 25% tighter than before
+
+/* ── State ──────────────────────────────────────── */
+let state      = 'menu';
+let yakY       = H / 2;
+let yakVel     = 0;
+let score      = 0;
+let frame      = 0;
+let speed      = BASE_SPEED;
+let pipes      = [];
+let clouds     = [];
+let groundX    = 0;
+let lastPipeT  = 0;
+let pipeCount  = 0;
+let lastTopH   = null;
+let rng        = makeRng(COURSE_SEED);
+let nextPipeMs = 0;
+let animId     = 0;
+let idleAnimId = 0;
+let clearTimes  = [];      // ms from gameStart for each pipe clear — sent as telemetry
+let gameStartMs = 0;
+
+// Personal best (localStorage)
+let personalBest = parseInt(localStorage.getItem('ty_best') || '0', 10);
+
+/* ── Sky gradient ───────────────────────────────── */
+let skyGrad;
+function buildSky() {
+  skyGrad = ctx.createLinearGradient(0, 0, 0, H - GROUND_H);
+  skyGrad.addColorStop(0, '#3db9cf');
+  skyGrad.addColorStop(1, '#a5dde9');
+}
+
+/* ── Clouds ─────────────────────────────────────── */
+function initClouds() {
+  clouds = Array.from({length: 6}, () => ({
+    x: Math.random() * W,
+    y: 40 + Math.random() * 180,
+    rx: 40 + Math.random() * 50,
+    ry: 20 + Math.random() * 20,
+    s: 0.25 + Math.random() * 0.3
+  }));
+}
+function updateClouds() {
+  for (const c of clouds) {
+    c.x -= c.s;
+    if (c.x + c.rx < 0) {
+      c.x = W + c.rx;
+      c.y = 40 + Math.random() * 180;
+    }
+  }
+}
+function drawClouds() {
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  for (const c of clouds) {
+    /* each ellipse in its own path — avoids the seam caused by the even-odd fill rule */
+    ctx.beginPath(); ctx.ellipse(c.x,              c.y,               c.rx,       c.ry,       0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(c.x + c.rx*0.4,  c.y - c.ry*0.45,  c.rx*0.55, c.ry*0.65,  0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(c.x - c.rx*0.35, c.y - c.ry*0.3,   c.rx*0.45, c.ry*0.55,  0, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+/* ── Background ─────────────────────────────────── */
+function drawBg() {
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H - GROUND_H);
+  drawClouds();
+
+  const gx = Math.floor(-groundX % 40) - 40;
+  ctx.fillStyle = '#b0743b';
+  ctx.fillRect(0, H - GROUND_H, W, GROUND_H);
+  ctx.fillStyle = '#5aa83a';
+  ctx.fillRect(0, H - GROUND_H, W, 22);
+  ctx.fillStyle = '#448c28';
+  for (let x = gx; x < W + 40; x += 40) {
+    ctx.beginPath();
+    ctx.arc(x + 4,  H - GROUND_H + 11, 9, Math.PI, 0);
+    ctx.arc(x + 18, H - GROUND_H + 8, 12, Math.PI, 0);
+    ctx.arc(x + 30, H - GROUND_H + 11, 9, Math.PI, 0);
+    ctx.fill();
+  }
+}
+
+/* ── Yak drawing — sprite image ────────────────── */
+// Sprite natural size: 200×173. Draw at ~80px wide centred on (x,y).
+const YAK_DRAW_W = 80;
+const YAK_DRAW_H = Math.round(YAK_DRAW_W * 173 / 200);
+
+function drawYak(x, y, vel) {
+  if (!yakImg.complete || !yakImg.naturalWidth) return; // still loading
+  const ang = Math.max(-0.4, Math.min(0.6, vel * 0.045));
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  // draw centred, offset slightly left so face leads
+  ctx.drawImage(yakImg, -YAK_DRAW_W * 0.45, -YAK_DRAW_H * 0.55, YAK_DRAW_W, YAK_DRAW_H);
+  ctx.restore();
+}
+
+/* ── OLD hand-drawn body (kept below for reference, never called) ──
+function drawYakOld(x, y, vel) {
+  const ang = Math.max(-0.35, Math.min(0.75, vel * 0.045));
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.scale(0.85, 0.85);
+
+  // ── BODY — large round fluffy oval ───────────────
+  // Dark outer fur fringe (bottom)
+  ctx.fillStyle = '#5A0A0A';
+  for (let i = -28; i <= 26; i += 6) {
+    ctx.beginPath(); ctx.arc(i, 26 + Math.sin(i * 0.6) * 2, 7, 0, Math.PI*2); ctx.fill();
+  }
+  // Dark outer fur fringe (left side / back)
+  for (let j = -10; j <= 16; j += 7) {
+    ctx.beginPath(); ctx.arc(-32, j, 6, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Main body
+  ctx.fillStyle = '#8B1A1A';
+  ctx.beginPath(); ctx.ellipse(-1, 7, 32, 22, 0, 0, Math.PI*2); ctx.fill();
+
+  // Fur texture patches — multi-tone red
+  ctx.fillStyle = '#A01C1C';
+  [[-22,-2,9],[-14,-10,8],[0,-11,9],[14,-7,8],[22,1,8],[24,12,7],[10,20,8],[-6,20,8],[-20,13,8]].forEach(([fx,fy,fr]) => {
+    ctx.beginPath(); ctx.arc(fx,fy,fr,0,Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = '#701010';
+  [[-18,5,6],[0,3,7],[16,7,6],[-8,15,5],[10,14,5],[-2,-5,5]].forEach(([fx,fy,fr]) => {
+    ctx.beginPath(); ctx.arc(fx,fy,fr,0,Math.PI*2); ctx.fill();
+  });
+  // Smooth body centre
+  ctx.fillStyle = '#8B1A1A';
+  ctx.beginPath(); ctx.ellipse(-1, 7, 24, 16, 0, 0, Math.PI*2); ctx.fill();
+
+  // ── TAIL ──────────────────────────────────────────
+  ctx.strokeStyle = '#701010'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-30, 2); ctx.bezierCurveTo(-50, -6, -52, 8, -40, 14);
+  ctx.stroke();
+  ctx.fillStyle = '#901818';
+  [[-40,14,8],[-36,9,6],[-44,10,6]].forEach(([tx,ty,tr]) => {
+    ctx.beginPath(); ctx.arc(tx,ty,tr,0,Math.PI*2); ctx.fill();
+  });
+
+  // ── LEGS — small stubby ───────────────────────────
+  ctx.fillStyle = '#701010';
+  [[-18,24],[-8,24],[5,24],[15,24]].forEach(([lx,ly]) => {
+    ctx.beginPath(); ctx.roundRect(lx, ly, 9, 13, 3); ctx.fill();
+  });
+  ctx.fillStyle = '#3A1A08';
+  [[-18,35],[-8,35],[5,35],[15,35]].forEach(([lx,ly]) => {
+    ctx.beginPath(); ctx.ellipse(lx+4.5, ly+3, 5.5, 3.5, 0, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── HEAD — large, more front-facing ──────────────
+  ctx.fillStyle = '#8B1A1A';
+  ctx.beginPath(); ctx.arc(18, -5, 24, 0, Math.PI*2); ctx.fill();
+
+  // Dense fluffy mane around head
+  ctx.fillStyle = '#A01C1C';
+  [[6,-27,10],[14,-28,10],[22,-28,9],[30,-24,9],[35,-16,8],[6,-14,8],[4,-5,7]].forEach(([hx,hy,hr]) => {
+    ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = '#5A0A0A';
+  [[10,-23,6],[20,-25,6],[28,-20,5],[32,-12,5]].forEach(([hx,hy,hr]) => {
+    ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill();
+  });
+  // Smooth head over mane
+  ctx.fillStyle = '#8B1A1A';
+  ctx.beginPath(); ctx.arc(18, -5, 20, 0, Math.PI*2); ctx.fill();
+
+  // ── HORNS — wide symmetrical bull horns ───────────
+  // ── HORNS — thick stroked arcs, sweep wide then curve up ──
+  ctx.lineCap = 'round';
+
+  // Dark base shadow for both horns
+  ctx.strokeStyle = '#7A5000';
+  ctx.lineWidth = 16;
+  ctx.beginPath();
+  ctx.moveTo(10, -20);
+  ctx.bezierCurveTo(-18, -20, -38, -26, -30, -54);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(26, -20);
+  ctx.bezierCurveTo(54, -20, 70, -26, 62, -54);
+  ctx.stroke();
+
+  // Main horn fill (warm gold)
+  ctx.strokeStyle = '#C8980A';
+  ctx.lineWidth = 13;
+  ctx.beginPath();
+  ctx.moveTo(10, -20);
+  ctx.bezierCurveTo(-18, -20, -38, -26, -30, -54);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(26, -20);
+  ctx.bezierCurveTo(54, -20, 70, -26, 62, -54);
+  ctx.stroke();
+
+  // Highlight ridge (lighter inner face of horn)
+  ctx.strokeStyle = '#EDD040';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(10, -22);
+  ctx.bezierCurveTo(-12, -22, -28, -28, -24, -50);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(26, -22);
+  ctx.bezierCurveTo(50, -22, 62, -28, 58, -50);
+  ctx.stroke();
+
+  // ── EYES — small dark, both visible ──────────────
+  // Left eye
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(11, -9, 5.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(13, -11, 2, 0, Math.PI*2); ctx.fill();
+
+  // Right eye
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(24, -9, 5.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(26, -11, 2, 0, Math.PI*2); ctx.fill();
+
+  // ── MUZZLE — very large, orange, dominates face ───
+  ctx.fillStyle = '#D96020';
+  ctx.beginPath(); ctx.ellipse(18, 8, 17, 13, 0, 0, Math.PI*2); ctx.fill();
+  // Lighter top highlight
+  ctx.fillStyle = '#F08040';
+  ctx.beginPath(); ctx.ellipse(16, 4, 12, 8, 0, 0, Math.PI*2); ctx.fill();
+
+  // Big round dark nostrils
+  ctx.fillStyle = '#7A1800';
+  ctx.beginPath(); ctx.arc(11, 10, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(25, 10, 4.5, 0, Math.PI*2); ctx.fill();
+
+  // Smile
+  ctx.strokeStyle = '#7A1800'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(8, 16); ctx.quadraticCurveTo(18, 24, 28, 16);
+  ctx.stroke();
+
+  ctx.restore();
+} ── END OLD drawYakOld */
+
+/* ── Pipes ──────────────────────────────────────── */
+function spawnPipe() {
+  const gap    = pipeGap(pipeCount);
+  const minTop = 80;
+  const maxTop = H - GROUND_H - gap - 80;
+
+  /* smooth height: limit jump from previous pipe, more variation later */
+  const maxShift = Math.min(90, 35 + pipeCount * 3);
+  let topH;
+  if (lastTopH === null) {
+    topH = minTop + rng() * (maxTop - minTop);
+  } else {
+    const lo = Math.max(minTop, lastTopH - maxShift);
+    const hi = Math.min(maxTop, lastTopH + maxShift);
+    topH = lo + rng() * (hi - lo);
+  }
+
+  lastTopH = topH;
+  nextPipeMs = pipeDelay(pipeCount);
+  pipeCount++;
+  pipes.push({ x: W + 20, topH: Math.round(topH), gap, scored: false });
+}
+
+function drawPipe(p) {
+  const bot  = p.topH + p.gap;
+  const botH = H - GROUND_H - bot;
+  const capX = p.x - 7;
+  const capW = PIPE_W + 14;
+
+  function pipeGrad(x, w) {
+    const g = ctx.createLinearGradient(x, 0, x+w, 0);
+    g.addColorStop(0,    '#1d5c0e');
+    g.addColorStop(0.28, '#2e8c1a');
+    g.addColorStop(0.5,  '#48b82c');
+    g.addColorStop(0.72, '#2e8c1a');
+    g.addColorStop(1,    '#1d5c0e');
+    return g;
+  }
+  function capGrad(x, w) {
+    const g = ctx.createLinearGradient(x, 0, x+w, 0);
+    g.addColorStop(0,   '#164808');
+    g.addColorStop(0.3, '#1d5c0e');
+    g.addColorStop(0.7, '#1d5c0e');
+    g.addColorStop(1,   '#164808');
+    return g;
+  }
+
+  // top pipe shaft
+  ctx.fillStyle = pipeGrad(p.x, PIPE_W);
+  ctx.fillRect(p.x, 0, PIPE_W, p.topH - 22);
+  // top cap
+  ctx.fillStyle = capGrad(capX, capW);
+  ctx.fillRect(capX, p.topH - 24, capW, 26);
+  // bottom cap
+  ctx.fillStyle = capGrad(capX, capW);
+  ctx.fillRect(capX, bot, capW, 26);
+  // bottom pipe shaft
+  ctx.fillStyle = pipeGrad(p.x, PIPE_W);
+  ctx.fillRect(p.x, bot + 26, PIPE_W, botH - 26);
+
+  // outlines
+  ctx.strokeStyle = '#164808';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(p.x, 0, PIPE_W, p.topH - 22);
+  ctx.strokeRect(capX, p.topH - 24, capW, 26);
+  ctx.strokeRect(capX, bot, capW, 26);
+  ctx.strokeRect(p.x, bot + 26, PIPE_W, botH - 26);
+}
+
+function updatePipes() {
+  const now = performance.now();
+  if (now - lastPipeT > nextPipeMs) { spawnPipe(); lastPipeT = now; }
+  for (const p of pipes) {
+    p.x -= speed;
+    if (!p.scored && p.x + PIPE_W < YAK_X) {
+      p.scored = true; score++;
+      clearTimes.push(Math.round(performance.now() - gameStartMs));
+    }
+  }
+  pipes = pipes.filter(p => p.x + PIPE_W + 30 > 0);
+}
+
+/* ── Collision ──────────────────────────────────── */
+function hit() {
+  if (yakY + 14 > H - GROUND_H) return true;
+  if (yakY - 14 < 0) return true;
+  for (const p of pipes) {
+    const capX = p.x - 7, capW = PIPE_W + 14;
+    const bot  = p.topH + p.gap;
+    if (YAK_X + 24 > capX && YAK_X - 18 < capX + capW) {
+      if (yakY - 20 < p.topH || yakY + 20 > bot) return true;
+    }
+  }
+  return false;
+}
+
+/* ── Score HUD ──────────────────────────────────── */
+function drawHUD() {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 46px -apple-system,sans-serif';
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillText(score, W/2+2, 58);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(score, W/2, 56);
+  ctx.restore();
+}
+
+/* ── Main game loop ─────────────────────────────── */
+function loop() {
+  frame++;
+  speed = BASE_SPEED + score * SPEED_PER_SCORE;
+  yakVel += GRAVITY;
+  yakY   += yakVel;
+  groundX += speed;
+
+  updateClouds();
+  updatePipes();
+  drawBg();
+  pipes.forEach(drawPipe);
+  drawYak(YAK_X, yakY, yakVel);
+  drawHUD();
+
+  if (hit()) { die(); return; }
+  animId = requestAnimationFrame(loop);
+}
+
+/* ── Game control ───────────────────────────────── */
+function startGame() {
+  if (isLocked()) {          // game closed — send user back to menu instead of starting
+    showMenu();
+    return;
+  }
+  fetchSession();            // get a fresh anti-tamper token + PoW for this run
+  cancelAnimationFrame(idleAnimId);
+  yakY = H / 2; yakVel = 0; score = 0; frame = 0;
+  speed = BASE_SPEED; pipes = []; groundX = 0;
+  pipeCount = 0; lastTopH = null; rng = makeRng(COURSE_SEED);
+  nextPipeMs = pipeDelay(0);
+  spawnPipe(); lastPipeT = performance.now();
+  clearTimes = [];
+  gameStartMs = performance.now();
+  state = 'playing';
+  show(null);
+  cancelAnimationFrame(animId);
+  loop();
+}
+
+function flap() {
+  if (state === 'playing') { yakVel = FLAP_VEL; }
+  else if (state === 'menu') { startGame(); }
+  else if (state === 'dead') {
+    if (score === 0) { showMenu(); }   // 0 score → back to menu
+    else { startGame(); }              // scored something → restart
+  }
+  // 'dying' → block all input during death animation
+}
+
+function showMenu() {
+  cancelAnimationFrame(animId);
+  state = 'menu';
+  show('sMenu');
+  updateMenuLockState();
+  idleLoop();
+}
+
+function die() {
+  state = 'dying';  // block input during death animation
+  const isNewBest = score > personalBest;
+  if (isNewBest) { personalBest = score; localStorage.setItem('ty_best', score); }
+  setTimeout(() => {
+    if (score === 0) { showMenu(); return; }  // 0 score → straight back to menu
+    state = 'dead';
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('newBestBadge').style.display = isNewBest ? 'block' : 'none';
+    document.getElementById('nameInput').value = '';
+    document.getElementById('errMsg').textContent = '';
+    document.getElementById('nameInput').style.display = '';
+    document.getElementById('btnSubmit').style.display = '';
+    show('sOver');
+    document.getElementById('nameInput').focus();
+  }, 500);
+}
+
+/* ── Idle animation on menu ─────────────────────── */
+function idleLoop() {
+  if (state !== 'menu') return;
+  updateClouds();
+  drawBg();
+  const floatY = H/2 - 10 + Math.sin(Date.now() * 0.0022) * 20;
+  drawYak(W/2 - 15, floatY, Math.sin(Date.now() * 0.0022) * 0.2);
+  idleAnimId = requestAnimationFrame(idleLoop);
+}
+
+/* ── Screen helpers ─────────────────────────────── */
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (id) document.getElementById(id).classList.add('active');
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Fit canvas inside gameArea ─────────────────── */
+function fitCanvas() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const gameArea = document.getElementById('gameArea');
+  const lbBar   = document.getElementById('lbBar');
+  const portrait = vh >= vw;
+
+  const MIN_LB = 180; // always keep at least this many px for leaderboard
+  let cw, ch, lbH;
+
+  if (portrait) {
+    // Try filling full width; if canvas would be too tall, scale down instead
+    const fullWidthH = Math.round(vw * H / W);
+    if (fullWidthH <= vh - MIN_LB) {
+      // Fits — fill edge to edge
+      cw = vw;
+      ch = fullWidthH;
+    } else {
+      // Too tall — scale by available height instead
+      ch = vh - MIN_LB;
+      cw = Math.round(ch * W / H);
+    }
+    lbH = vh - ch;
+  } else {
+    // Landscape: fill height of top-2/3, maintain aspect ratio
+    lbH = Math.floor(vh / 3);
+    const gaH = vh - lbH;
+    const scale = Math.min(vw / W, gaH / H);
+    cw  = Math.round(W * scale);
+    ch  = Math.round(H * scale);
+  }
+
+  canvas.style.width    = cw + 'px';
+  canvas.style.height   = ch + 'px';
+  gameArea.style.flex   = 'none';
+  gameArea.style.height = ch + 'px';
+  lbBar.style.flex      = 'none';
+  lbBar.style.height    = lbH + 'px';
+}
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
+
+/* ── Event mode: timer active OR locked → leaderboard is masked ── */
+function lbMaskedNow() { return lockoutAt > 0; }   // either counting or locked
+
+/* ── Game-lockout countdown (15 min) ───────────────── */
+const LOCKOUT_MS = 15 * 60 * 1000;
+let lockoutAt = parseInt(localStorage.getItem('ty_lockout_at') || '0', 10);
+let timerInterval = null;
+
+function isLocked() { return lockoutAt > 0 && Date.now() >= lockoutAt; }
+
+function updateTimerBtn() {
+  const btn = document.getElementById('btnTimer');
+  if (!btn) return;
+  if (lockoutAt === 0) {
+    btn.textContent = '⏱️';
+    btn.title = 'Start 15-minute countdown';
+    btn.classList.remove('active','locked');
+    return;
+  }
+  const remaining = lockoutAt - Date.now();
+  if (remaining <= 0) {
+    btn.textContent = '🔒';
+    btn.title = 'Locked — click to reset';
+    btn.classList.remove('active');
+    btn.classList.add('locked');
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    updateMenuLockState();
+  } else {
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    btn.textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+    btn.title = 'Cancel countdown';
+    btn.classList.add('active');
+    btn.classList.remove('locked');
+  }
+}
+
+function updateMenuLockState() {
+  const hint = document.getElementById('startHint');
+  const lockMsg = document.getElementById('lockMsg');
+  if (!hint || !lockMsg) return;
+  if (isLocked()) {
+    hint.style.display = 'none';
+    lockMsg.style.display = 'block';
+  } else {
+    hint.style.display = '';
+    lockMsg.style.display = 'none';
+  }
+}
+
+function startCountdown() {
+  lockoutAt = Date.now() + LOCKOUT_MS;
+  localStorage.setItem('ty_lockout_at', String(lockoutAt));
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimerBtn, 500);
+  updateTimerBtn();
+  updateMenuLockState();
+  renderLbBar();    // mask leaderboard immediately
+}
+
+function cancelCountdown() {
+  lockoutAt = 0;
+  localStorage.removeItem('ty_lockout_at');
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  updateTimerBtn();
+  updateMenuLockState();
+  renderLbBar();    // unmask leaderboard immediately
+}
+
+document.getElementById('btnTimer').addEventListener('click', e => {
+  e.stopPropagation();
+  if (lockoutAt > 0) {
+    cancelCountdown();
+  } else {
+    startCountdown();
+  }
+});
+
+// Resume timer on page load if still running
+if (lockoutAt > 0 && !isLocked()) {
+  timerInterval = setInterval(updateTimerBtn, 500);
+}
+updateTimerBtn();
+updateMenuLockState();
+
+/* ── Live leaderboard bar ────────────────────────── */
+let lbBarData = { daily: [], all: [] };
+
+function renderLbBar() {
+  const medals = ['🥇','🥈','🥉'];
+  function render(el, rows, emptyMsg) {
+    if (!rows.length) { el.innerHTML = `<li class="lb-bar-empty">${emptyMsg}</li>`; return; }
+    const masked = lbMaskedNow();
+    el.innerHTML = rows.map((r, i) => {
+      const cls  = i < 3 ? ['gold','silver','bronze'][i] : '';
+      const nm   = masked ? '???' : esc(r.name);
+      const sc   = masked ? '?'   : r.score;
+      return `<li class="${cls}">
+        <span class="rank">${i < 3 ? medals[i] : (i+1)+'.'}</span>
+        <span class="lname">${nm}</span>
+        <span class="lscore">${sc}</span>
+      </li>`;
+    }).join('');
+  }
+  render(document.getElementById('lbToday'),   lbBarData.daily, 'No scores today');
+  render(document.getElementById('lbAllTime'), lbBarData.all,   'No scores yet');
+}
+
+async function loadLbBar() {
+  try {
+    const [daily, all] = await Promise.all([apiFetch(10,'daily'), apiFetch(10,'alltime')]);
+    lbBarData = { daily, all };
+    renderLbBar();
+  } catch { /* silent */ }
+}
+loadLbBar();
+setInterval(loadLbBar, 30000);
+
+/* ── Full leaderboard modal ─────────────────────── */
+let lbType = 'daily';
+
+async function showLB() {
+  show('sLB');
+  document.getElementById('tabDaily').classList.toggle('active',   lbType === 'daily');
+  document.getElementById('tab2Days').classList.toggle('active',   lbType === 'last2days');
+  document.getElementById('tabAllTime').classList.toggle('active', lbType === 'alltime');
+  const list = document.getElementById('lbList');
+  list.innerHTML = '<li class="lb-list-empty">Loading…</li>';
+  try {
+    const rows = await apiFetch(20, lbType);
+    if (!rows.length) { list.innerHTML = '<li class="lb-list-empty">No scores yet!</li>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    const masked = lbMaskedNow();
+    list.innerHTML = rows.map((r,i) => {
+      const cls = i < 3 ? ['gold','silver','bronze'][i] : '';
+      const nm  = masked ? '???' : esc(r.name);
+      const sc  = masked ? '?'   : r.score;
+      return `<li class="${cls}">
+        <span class="rank">${i<3 ? medals[i] : (i+1)+'.'}</span>
+        <span class="lname">${nm}</span>
+        <span class="lscore">${sc}</span>
+      </li>`;
+    }).join('');
+  } catch { list.innerHTML = '<li class="lb-list-empty" style="color:#f88">Could not load.</li>'; }
+}
+
+document.getElementById('btnLB').addEventListener('click', e => {
+  e.stopPropagation(); lbType = 'daily'; showLB();
+});
+document.getElementById('tabDaily').addEventListener('click', e => {
+  e.stopPropagation(); lbType = 'daily'; showLB();
+});
+document.getElementById('tab2Days').addEventListener('click', e => {
+  e.stopPropagation(); lbType = 'last2days'; showLB();
+});
+document.getElementById('tabAllTime').addEventListener('click', e => {
+  e.stopPropagation(); lbType = 'alltime'; showLB();
+});
+document.getElementById('btnBack').addEventListener('click', e => {
+  e.stopPropagation(); show('sMenu');
+});
+
+/* ── Events ─────────────────────────────────────── */
+canvas.addEventListener('click', flap);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); }, { passive: false });
+document.addEventListener('keydown', e => {
+  const isSpace = e.code === 'Space';
+  const isEnter = e.code === 'Enter';
+  const isUp    = e.code === 'ArrowUp';
+
+  if (state === 'dead') {
+    if (isSpace || isEnter) {
+      e.preventDefault();
+      const name = document.getElementById('nameInput').value.trim();
+      const btn  = document.getElementById('btnSubmit');
+      if (name && !btn.disabled) {
+        btn.click();                                    // submit if name filled
+      } else {
+        startGame();                                    // empty name → just restart
+      }
+    }
+    return; // never flap while dead
+  }
+
+  if (isSpace || isUp) { e.preventDefault(); flap(); }
+});
+
+document.getElementById('btnSubmit').addEventListener('click', async () => {
+  const name = document.getElementById('nameInput').value.trim();
+  const err  = document.getElementById('errMsg');
+  if (!name) { err.textContent = 'Please enter your name.'; return; }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.textContent = 'Submitting…'; btn.disabled = true; err.textContent = '';
+  try {
+    await apiSubmit(name, score, clearTimes);
+    await loadLbBar();
+    showMenu();
+  } catch (e) {
+    console.error('submit error', e);
+    err.textContent = `✗ ${e.message || 'Failed to submit.'}`;
+  }
+  btn.textContent = 'Submit to Leaderboard'; btn.disabled = false;
+});
+
+document.getElementById('btnSkip').addEventListener('click', startGame);
+
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.code === 'Space') {
+    e.preventDefault();
+    e.stopPropagation(); // don't let Space bubble to global handler
+    const name = document.getElementById('nameInput').value.trim();
+    const btn  = document.getElementById('btnSubmit');
+    if (name && !btn.disabled) {
+      btn.click();                                      // submit if name filled
+    } else {
+      startGame();                                      // empty name → just restart
+    }
+  }
+});
+
+/* ── Fullscreen button ──────────────────────────── */
+document.getElementById('btnFS').addEventListener('click', e => {
+  e.stopPropagation();
+  const el = document.documentElement;
+  if (!document.fullscreenElement) {
+    (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen).call(el);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen).call(document);
+  }
+});
+
+/* ── Init ───────────────────────────────────────── */
+buildSky();
+initClouds();
+show('sMenu');
+state = 'menu';
+idleLoop();
+</script>
+</body>
+</html>

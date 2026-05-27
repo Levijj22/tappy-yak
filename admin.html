@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TappyYak Admin</title>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      min-height: 100vh;
+      background: #0d1b2a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, 'Segoe UI', Helvetica, sans-serif;
+      color: #fff;
+    }
+    .panel {
+      background: rgba(5,15,30,0.95);
+      border: 1.5px solid rgba(255,255,255,0.13);
+      border-radius: 20px;
+      padding: 36px 32px;
+      width: min(420px, 94vw);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #f5c842;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 0.85rem;
+      margin-top: -12px;
+    }
+    label {
+      font-size: 0.8rem;
+      color: #aaa;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.07);
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-top: 6px;
+    }
+    input[type="password"]:focus { border-color: #f5c842; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .reset-card {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .reset-card h2 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .reset-card p {
+      font-size: 0.8rem;
+      color: #888;
+      line-height: 1.4;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s, filter 0.15s;
+      font-family: inherit;
+    }
+    button:active { transform: scale(0.97); filter: brightness(0.9); }
+    .btn-danger {
+      background: linear-gradient(135deg, #e03030, #a01010);
+      color: #fff;
+    }
+    .btn-warning {
+      background: linear-gradient(135deg, #e07820, #b04010);
+      color: #fff;
+    }
+    .msg {
+      text-align: center;
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      font-weight: 600;
+    }
+    .msg.ok  { color: #6f6; }
+    .msg.err { color: #f88; }
+  </style>
+</head>
+<body>
+<div class="panel">
+  <h1>🦬 TappyYak Admin</h1>
+  <p class="subtitle">Leaderboard management</p>
+
+  <div>
+    <label>Admin Password</label>
+    <input type="password" id="pwInput" placeholder="Enter password" autocomplete="current-password">
+  </div>
+
+  <hr class="divider">
+
+  <div class="reset-card">
+    <h2>📅 Reset Today's Scores</h2>
+    <p>Removes all scores submitted today (Sydney time). All-time scores are kept.</p>
+    <button class="btn-warning" onclick="reset('today')">Reset Today's Leaderboard</button>
+  </div>
+
+  <div class="reset-card">
+    <h2>🗑️ Reset All-Time Scores</h2>
+    <p>Permanently deletes every score ever submitted. This cannot be undone.</p>
+    <button class="btn-danger" onclick="reset('alltime')">Reset All-Time Leaderboard</button>
+  </div>
+
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+async function reset(type) {
+  const pw  = document.getElementById('pwInput').value.trim();
+  const msg = document.getElementById('msg');
+  if (!pw) { msg.className='msg err'; msg.textContent='Enter the admin password first.'; return; }
+
+  const label = type === 'today' ? "today's scores" : "ALL scores ever";
+  if (!confirm(`Are you sure you want to delete ${label}? This cannot be undone.`)) return;
+
+  msg.className='msg'; msg.textContent='Working…';
+  try {
+    const res = await fetch(`/api/scores?type=${type}&key=${encodeURIComponent(pw)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.status);
+    msg.className='msg ok';
+    msg.textContent = type === 'today'
+      ? `✓ Today's scores cleared. ${data.remaining} all-time scores remain.`
+      : '✓ All scores deleted. Leaderboard is now empty.';
+  } catch(e) {
+    msg.className='msg err';
+    msg.textContent = e.message === 'Unauthorised' ? '✗ Wrong password.' : `✗ Error: ${e.message}`;
+  }
+}
+
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.querySelector('button').focus();
+});
+</script>
+</body>
+</html>
