@@ -11,7 +11,7 @@
     }
     html, body {
       width: 100%; height: 100%;
-      background: #0d1b2a;
+      background: #fff;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -24,8 +24,22 @@
       flex-direction: column;
       width: 100vw;
       height: 100dvh;
-      background: #0d1b2a;
+      background: #fff;
     }
+    /* gameArea matches the canvas sky so the strips on either side of the canvas blend in */
+    #gameArea { background: linear-gradient(to bottom, #3db9cf, #a5dde9); }
+
+    /* SSW logo overlay — top-left corner of the game area, no background */
+    .ssw-logo-overlay {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      height: 44px;
+      width: auto;
+      z-index: 999;
+      pointer-events: none;
+    }
+
     #gameArea {
       flex: 2;
       min-height: 0;
@@ -45,8 +59,8 @@
       flex: 1;
       min-height: 0;
       display: flex;
-      background: rgba(5,12,25,0.97);
-      border-top: 2px solid rgba(245,200,66,0.35);
+      background: #fff;
+      border-top: 1px solid rgba(0,0,0,0.08);
     }
     .lb-col {
       flex: 1;
@@ -57,17 +71,17 @@
       overflow: hidden;
     }
     .lb-col + .lb-col {
-      border-left: 1px solid rgba(255,255,255,0.1);
+      border-left: 1px solid rgba(0,0,0,0.08);
     }
     .lb-col-hd {
       font-size: 0.72rem;
       font-weight: 900;
-      color: #f5c842;
+      color: #CC4141;            /* SSW red */
       text-align: center;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       padding-bottom: 4px;
-      border-bottom: 1px solid rgba(245,200,66,0.2);
+      border-bottom: 1px solid rgba(204,65,65,0.25);
       margin-bottom: 4px;
       flex-shrink: 0;
     }
@@ -86,28 +100,28 @@
       padding: 2px 6px;
       border-radius: 5px;
       font-size: 0.72rem;
-      color: #ddd;
-      background: rgba(255,255,255,0.04);
+      color: #1a1a1a;
+      background: rgba(0,0,0,0.035);
       white-space: nowrap;
       overflow: hidden;
     }
-    .lb-col-list li.gold   { background: rgba(245,200,66,0.14); }
-    .lb-col-list li.silver { background: rgba(192,192,192,0.1); }
-    .lb-col-list li.bronze { background: rgba(205,127,50,0.1);  }
-    .lb-col-list .rank  { width: 22px; font-weight: 900; text-align: center; flex-shrink: 0; font-size: 0.7rem; }
+    .lb-col-list li.gold   { background: rgba(245,200,66,0.30); }
+    .lb-col-list li.silver { background: rgba(160,160,160,0.22); }
+    .lb-col-list li.bronze { background: rgba(205,127,50,0.22); }
+    .lb-col-list .rank  { width: 22px; font-weight: 900; text-align: center; flex-shrink: 0; font-size: 0.7rem; color: #555; }
     .lb-col-list .lname { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-    .lb-col-list .lscore{ font-weight: 800; color: #f5c842; flex-shrink: 0; }
-    .lb-bar-empty { color: #555; font-size: 0.7rem; text-align: center; padding: 6px 0; }
+    .lb-col-list .lscore{ font-weight: 800; color: #CC4141; flex-shrink: 0; }
+    .lb-bar-empty { color: #999; font-size: 0.7rem; text-align: center; padding: 6px 0; }
 
     /* screens overlay only the gameArea */
     .screen { border-radius: 0; }
     #btnFS, #btnTimer {
-      position: fixed;
+      position: absolute;
       top: 10px;
       z-index: 999;
-      background: rgba(0,0,0,0.45);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: #fff;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.18);
+      color: #1a1a1a;
       font-size: 1.1rem;
       height: 36px;
       width: 36px;
@@ -118,14 +132,14 @@
       padding: 0;
       font-family: inherit;
     }
-    #btnFS    { right: 12px; }
+    #btnFS    { right: 10px; }
     #btnTimer {
-      right: 56px;
+      right: 54px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-weight: 700;
     }
-    #btnTimer.active { background: rgba(224,120,32,0.65); border-color: rgba(255,200,120,0.5); font-size: 0.65rem; letter-spacing: -0.5px; }
-    #btnTimer.locked { background: rgba(224,48,48,0.7); border-color: rgba(255,120,120,0.6); }
+    #btnTimer.active { background: #e07820; border-color: #b04010; color: #fff; font-size: 0.65rem; letter-spacing: -0.5px; }
+    #btnTimer.locked { background: #CC4141; border-color: #a01010; color: #fff; }
 
     #lockMsg {
       display: none;
@@ -158,19 +172,31 @@
     .screen.active { display: flex; }
 
     .title {
-      font-size: 2.8rem;
+      font-size: 5.6rem;       /* 2× */
       font-weight: 900;
       color: #fff;
-      text-shadow: 3px 3px 0 #b87820, 6px 6px 0 #7a4f10;
-      letter-spacing: 3px;
+      text-shadow: 5px 5px 0 #CC4141, 10px 10px 0 #8a1a1a;
+      letter-spacing: 4px;
       text-align: center;
+      line-height: 1;
     }
     .subtitle {
-      color: #ddd;
-      font-size: 0.95rem;
+      color: #fff;
+      font-size: 1.9rem;       /* 2× */
       text-align: center;
-      opacity: 0.75;
-      margin-top: -6px;
+      opacity: 0.95;
+      margin-top: 4px;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    }
+    .vibe-tag {
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-align: center;
+      opacity: 0.85;
+      margin-top: -8px;
+      text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
     }
     .tap-hint {
       color: #fff;
@@ -260,6 +286,31 @@
       border: 1px solid rgba(255,255,255,0.18);
     }
 
+    /* Menu screen: title+subtitle dropped down a touch — centered ~28% from top */
+    #sMenu {
+      justify-content: flex-start;
+      padding-top: 22%;
+    }
+    /* Menu screen: float the start-hint card just above the grass, white style */
+    #sMenu .card {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 19%;                    /* card center sits ~29% from bottom — halfway between grass top (~12%) and yak's lowest float (~46%) */
+      /* width inherits from .card: 100% up to max-width: 300px */
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      backdrop-filter: none;
+    }
+    #sMenu .card .tap-hint { color: #1a1a1a; }
+    #sMenu .card .btn-secondary {
+      background: #f4f4f4;
+      color: #1a1a1a;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
     .error-msg { color: #f88; font-size: 0.8rem; text-align: center; min-height: 1.1em; }
 
     /* full leaderboard modal */
@@ -289,16 +340,18 @@
 </head>
 <body>
 <div id="wrap">
-  <!-- top 2/3: game + overlay screens -->
+  <!-- top: game + overlay screens (banner removed; logo + buttons overlay the game) -->
   <div id="gameArea">
     <canvas id="c" width="400" height="600"></canvas>
-    <button id="btnFS" title="Fullscreen">⛶</button>
+    <img class="ssw-logo-overlay" src="/ssw-logo.svg" alt="SSW">
     <button id="btnTimer" title="Start event mode (15-min countdown + mask leaderboard)">⏱️</button>
+    <button id="btnFS" title="Fullscreen">⛶</button>
 
     <!-- MENU -->
     <div id="sMenu" class="screen active">
       <div class="title">TappyYak</div>
       <div class="subtitle">Flap to survive. Don't hit the pipes.</div>
+      <div class="vibe-tag">#vibecoded</div>
       <div class="card">
         <div class="tap-hint" id="startHint">✦ Press spacebar to start ✦</div>
         <div id="lockMsg">🔒 Session ended<small>Game is closed</small></div>
@@ -888,6 +941,9 @@ function loop() {
 }
 
 /* ── Game control ───────────────────────────────── */
+const COUNTDOWN_MS = 3000;
+let countdownStartMs = 0;
+
 function startGame() {
   if (isLocked()) {          // game closed — send user back to menu instead of starting
     showMenu();
@@ -895,17 +951,66 @@ function startGame() {
   }
   fetchSession();            // get a fresh anti-tamper token + PoW for this run
   cancelAnimationFrame(idleAnimId);
+  cancelAnimationFrame(animId);
   yakY = H / 2; yakVel = 0; score = 0; frame = 0;
   speed = BASE_SPEED; pipes = []; groundX = 0;
   pipeCount = 0; lastTopH = null; rng = makeRng(COURSE_SEED);
   nextPipeMs = pipeDelay(0);
-  spawnPipe(); lastPipeT = performance.now();
   clearTimes = [];
-  gameStartMs = performance.now();
-  state = 'playing';
+  // Enter 3-second countdown — yak hovers, no pipes, big number on screen.
+  // gameStartMs is set AFTER countdown so telemetry timing is accurate.
+  state = 'countdown';
+  countdownStartMs = performance.now();
   show(null);
-  cancelAnimationFrame(animId);
-  loop();
+  countdownLoop();
+}
+
+function countdownLoop() {
+  if (state !== 'countdown') return;
+  const elapsed   = performance.now() - countdownStartMs;
+  const remaining = COUNTDOWN_MS - elapsed;
+
+  updateClouds();
+  drawBg();
+  // Yak hovers in starting position with a subtle bob
+  const bob = Math.sin(performance.now() * 0.005) * 4;
+  drawYak(YAK_X, yakY + bob, 0);
+  drawCountdown(remaining);
+
+  if (remaining <= 0) {
+    // Transition to live gameplay
+    spawnPipe();
+    lastPipeT   = performance.now();
+    gameStartMs = performance.now();   // telemetry clock starts here
+    state = 'playing';
+    loop();
+    return;
+  }
+  animId = requestAnimationFrame(countdownLoop);
+}
+
+function drawCountdown(remainingMs) {
+  const n = Math.ceil(remainingMs / 1000);
+  if (n <= 0) return;
+  // dim the world slightly
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(0, 0, W, H - GROUND_H);
+  // big white number with red outline
+  ctx.font = 'bold 140px -apple-system, "Segoe UI", Helvetica, sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth   = 10;
+  ctx.strokeStyle = '#CC4141';     /* SSW red */
+  ctx.strokeText(String(n), W/2, H/2 - 30);
+  ctx.fillStyle   = '#fff';
+  ctx.fillText(String(n), W/2, H/2 - 30);
+  // small label
+  ctx.font = 'bold 18px -apple-system, sans-serif';
+  ctx.lineWidth = 4;
+  ctx.strokeText('GET READY', W/2, H/2 + 60);
+  ctx.fillText('GET READY', W/2, H/2 + 60);
+  ctx.restore();
 }
 
 function flap() {
@@ -973,25 +1078,23 @@ function fitCanvas() {
   const lbBar   = document.getElementById('lbBar');
   const portrait = vh >= vw;
 
-  const MIN_LB = 180; // always keep at least this many px for leaderboard
+  // Banner = quarter the leaderboard's height. We split the leftover (vh - canvas)
+  // into 4/5 leaderboard + 1/5 banner.
+  const MIN_LB = 50;   // smaller floor → more cases hit the no-strips full-width path
   let cw, ch, lbH;
+  const bH = 0;
 
-  if (portrait) {
-    // Try filling full width; if canvas would be too tall, scale down instead
-    const fullWidthH = Math.round(vw * H / W);
-    if (fullWidthH <= vh - MIN_LB) {
-      // Fits — fill edge to edge
-      cw = vw;
-      ch = fullWidthH;
-    } else {
-      // Too tall — scale by available height instead
-      ch = vh - MIN_LB;
-      cw = Math.round(ch * W / H);
-    }
+  // Try to fit the canvas at full viewport width (aspect-preserving). If the
+  // resulting height leaves no room for a usable leaderboard, fall back to
+  // aspect-fitting the leftover space (small cyan strips appear in that case).
+  const widthScale  = vw / W;
+  const chFullWidth = Math.round(H * widthScale);
+  if (vh - chFullWidth >= MIN_LB) {
+    cw  = vw;
+    ch  = chFullWidth;
     lbH = vh - ch;
   } else {
-    // Landscape: fill height of top-2/3, maintain aspect ratio
-    lbH = Math.floor(vh / 3);
+    lbH = MIN_LB;
     const gaH = vh - lbH;
     const scale = Math.min(vw / W, gaH / H);
     cw  = Math.round(W * scale);
